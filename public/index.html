@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TaskFlow — Team Task Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #1a1a24;
+    --surface3: #22222e;
+    --border: #2a2a38;
+    --accent: #6c63ff;
+    --accent2: #ff6b6b;
+    --accent3: #43e97b;
+    --text: #e8e8f0;
+    --text2: #8888a8;
+    --text3: #5555708;
+    --todo: #f59e0b;
+    --progress: #6c63ff;
+    --done: #43e97b;
+    --high: #ff6b6b;
+    --medium: #f59e0b;
+    --low: #43e97b;
+    --radius: 12px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+  h1,h2,h3,h4 { font-family: 'Syne', sans-serif; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: var(--surface); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* AUTH */
+  .auth-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: radial-gradient(ellipse at 30% 20%, #1a1040 0%, var(--bg) 60%); }
+  .auth-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 48px 40px; width: 100%; max-width: 420px; box-shadow: var(--shadow); }
+  .auth-logo { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+  .auth-logo span { color: var(--accent); }
+  .auth-sub { color: var(--text2); margin-bottom: 36px; font-size: 14px; }
+  .auth-tabs { display: flex; gap: 4px; background: var(--surface2); padding: 4px; border-radius: 10px; margin-bottom: 28px; }
+  .auth-tab { flex: 1; padding: 8px; text-align: center; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; color: var(--text2); transition: all .2s; }
+  .auth-tab.active { background: var(--accent); color: white; }
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 13px; color: var(--text2); margin-bottom: 6px; font-weight: 500; }
+  .form-group input, .form-group select, .form-group textarea {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px; color: var(--text); font-size: 14px;
+    font-family: 'DM Sans', sans-serif; outline: none; transition: border .2s;
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--accent); }
+  .form-group select option { background: var(--surface2); }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 11px 20px; border-radius: 10px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all .2s; font-family: 'DM Sans', sans-serif; }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover { background: #5a52e0; transform: translateY(-1px); }
+  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: var(--surface3); }
+  .btn-danger { background: rgba(255,107,107,0.15); color: var(--high); border: 1px solid rgba(255,107,107,0.3); }
+  .btn-danger:hover { background: rgba(255,107,107,0.25); }
+  .btn-success { background: rgba(67,233,123,0.15); color: var(--done); border: 1px solid rgba(67,233,123,0.3); }
+  .btn-full { width: 100%; justify-content: center; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; transform: none !important; }
+
+  /* APP LAYOUT */
+  .app { display: flex; min-height: 100vh; }
+  .sidebar { width: 240px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: fixed; height: 100vh; overflow-y: auto; z-index: 100; }
+  .main { margin-left: 240px; flex: 1; min-height: 100vh; }
+
+  /* SIDEBAR */
+  .sidebar-logo { padding: 24px 20px 20px; font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; border-bottom: 1px solid var(--border); }
+  .sidebar-logo span { color: var(--accent); }
+  .sidebar-user { padding: 16px 20px; border-bottom: 1px solid var(--border); }
+  .sidebar-user-name { font-weight: 600; font-size: 14px; }
+  .sidebar-user-role { font-size: 12px; color: var(--text2); }
+  .role-badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; margin-top: 4px; }
+  .role-admin { background: rgba(108,99,255,.2); color: var(--accent); }
+  .role-member { background: rgba(67,233,123,.15); color: var(--done); }
+  .sidebar-nav { padding: 12px 10px; flex: 1; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; cursor: pointer; font-size: 14px; color: var(--text2); transition: all .2s; margin-bottom: 2px; }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active { background: rgba(108,99,255,.15); color: var(--accent); font-weight: 500; }
+  .nav-item svg { width: 18px; height: 18px; flex-shrink: 0; }
+  .sidebar-footer { padding: 16px 10px; border-top: 1px solid var(--border); }
+
+  /* TOPBAR */
+  .topbar { padding: 20px 28px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--surface); }
+  .topbar-title { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 700; }
+  .topbar-actions { display: flex; gap: 10px; align-items: center; }
+
+  /* CONTENT */
+  .content { padding: 28px; }
+
+  /* STATS GRID */
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; position: relative; overflow: hidden; }
+  .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+  .stat-card.blue::before { background: var(--accent); }
+  .stat-card.yellow::before { background: var(--todo); }
+  .stat-card.purple::before { background: var(--progress); }
+  .stat-card.green::before { background: var(--done); }
+  .stat-card.red::before { background: var(--high); }
+  .stat-label { font-size: 12px; color: var(--text2); font-weight: 500; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
+  .stat-value { font-family: 'Syne', sans-serif; font-size: 32px; font-weight: 700; }
+  .stat-icon { position: absolute; right: 16px; top: 16px; opacity: .15; font-size: 32px; }
+
+  /* CARDS GRID */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+  .card-header { padding: 18px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .card-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 600; }
+  .card-body { padding: 16px 20px; }
+
+  /* TASK ITEMS */
+  .task-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .task-item:last-child { border-bottom: none; }
+  .task-status-dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+  .task-info { flex: 1; min-width: 0; }
+  .task-title { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .task-meta { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+  /* PROJECT CARDS */
+  .project-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; cursor: pointer; transition: all .2s; }
+  .project-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(108,99,255,.15); }
+  .project-name { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+  .project-desc { font-size: 13px; color: var(--text2); margin-bottom: 14px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .progress-bar { height: 4px; background: var(--surface3); border-radius: 2px; overflow: hidden; margin-bottom: 10px; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #a78bfa); border-radius: 2px; transition: width .4s; }
+  .project-footer { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--text2); }
+
+  /* BADGES */
+  .badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge-todo { background: rgba(245,158,11,.15); color: var(--todo); }
+  .badge-in_progress { background: rgba(108,99,255,.15); color: var(--accent); }
+  .badge-done { background: rgba(67,233,123,.15); color: var(--done); }
+  .badge-high { background: rgba(255,107,107,.15); color: var(--high); }
+  .badge-medium { background: rgba(245,158,11,.15); color: var(--medium); }
+  .badge-low { background: rgba(67,233,123,.15); color: var(--low); }
+  .badge-active { background: rgba(67,233,123,.15); color: var(--done); }
+  .badge-archived { background: rgba(136,136,168,.15); color: var(--text2); }
+
+  /* TABLE */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  thead th { padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: var(--text2); border-bottom: 1px solid var(--border); }
+  tbody td { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+  tbody tr:hover { background: var(--surface2); }
+  tbody tr:last-child td { border-bottom: none; }
+
+  /* MODAL */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.7); backdrop-filter: blur(4px); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+  .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .modal-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 600; }
+  .modal-body { padding: 24px; }
+  .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; }
+  .close-btn { background: none; border: none; cursor: pointer; color: var(--text2); display: flex; padding: 4px; border-radius: 6px; }
+  .close-btn:hover { color: var(--text); background: var(--surface2); }
+
+  /* KANBAN */
+  .kanban { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .kanban-col { background: var(--surface2); border-radius: var(--radius); padding: 14px; }
+  .kanban-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .kanban-title { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .kanban-count { background: var(--surface3); padding: 2px 8px; border-radius: 20px; font-size: 11px; color: var(--text2); }
+  .kanban-task { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 8px; cursor: pointer; transition: all .2s; }
+  .kanban-task:hover { border-color: var(--accent); }
+  .kanban-task-title { font-size: 13px; font-weight: 500; margin-bottom: 8px; }
+  .kanban-task-meta { display: flex; align-items: center; justify-content: space-between; }
+
+  /* FILTERS */
+  .filters { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+  .filter-select { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; color: var(--text); font-size: 13px; outline: none; cursor: pointer; }
+
+  /* EMPTY STATE */
+  .empty { text-align: center; padding: 60px 20px; color: var(--text2); }
+  .empty-icon { font-size: 48px; margin-bottom: 12px; opacity: .4; }
+  .empty h3 { font-family: 'Syne', sans-serif; font-size: 18px; color: var(--text); margin-bottom: 6px; }
+  .empty p { font-size: 14px; }
+
+  /* TOAST */
+  .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+  .toast { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; font-size: 14px; min-width: 240px; display: flex; align-items: center; gap: 10px; box-shadow: var(--shadow); animation: slideIn .3s ease; }
+  .toast.success { border-color: rgba(67,233,123,.4); }
+  .toast.error { border-color: rgba(255,107,107,.4); }
+  @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: none; opacity: 1; } }
+
+  /* TABS */
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+  .tab { padding: 10px 16px; font-size: 14px; cursor: pointer; color: var(--text2); border-bottom: 2px solid transparent; transition: all .2s; font-weight: 500; }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* CHIP */
+  .chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; font-size: 12px; }
+
+  /* AVATAR */
+  .avatar { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), #a78bfa); display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: white; flex-shrink: 0; }
+
+  /* LOADING */
+  .loading { display: flex; align-items: center; justify-content: center; padding: 60px; }
+  .spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* OVERDUE badge */
+  .overdue-text { color: var(--high); font-size: 11px; }
+
+  /* DETAIL PAGE */
+  .detail-header { margin-bottom: 24px; }
+  .breadcrumb { font-size: 13px; color: var(--text2); margin-bottom: 12px; cursor: pointer; }
+  .breadcrumb:hover { color: var(--text); }
+
+  @media (max-width: 768px) {
+    .sidebar { transform: translateX(-100%); }
+    .main { margin-left: 0; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .grid-2 { grid-template-columns: 1fr; }
+    .kanban { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+<div class="toast-container" id="toasts"></div>
+
+<script>
+const API = '/api';
+let token = localStorage.getItem('tf_token');
+let currentUser = JSON.parse(localStorage.getItem('tf_user') || 'null');
+let currentView = 'dashboard';
+let currentProjectId = null;
+let viewData = {};
+
+// ──────────────────────────────── API HELPERS ────────────────────────────────
+async function api(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (token) opts.headers['Authorization'] = 'Bearer ' + token;
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(API + path, opts);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+function showToast(msg, type = 'success') {
+  const t = document.createElement('div');
+  t.className = 'toast ' + type;
+  t.innerHTML = `<span>${type === 'success' ? '✓' : '✕'}</span> ${msg}`;
+  document.getElementById('toasts').appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+// ──────────────────────────────── RENDER ────────────────────────────────────
+function render() {
+  const app = document.getElementById('app');
+  if (!token || !currentUser) {
+    app.innerHTML = renderAuth();
+    bindAuth();
+    return;
+  }
+  app.innerHTML = `
+    <div class="app">
+      ${renderSidebar()}
+      <div class="main" id="main-content">
+        <div class="loading"><div class="spinner"></div></div>
+      </div>
+    </div>
+  `;
+  bindSidebar();
+  renderView();
+}
+
+function renderAuth() {
+  return `
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <div class="auth-logo">Task<span>Flow</span></div>
+      <div class="auth-sub">Manage projects & teams efficiently</div>
+      <div class="auth-tabs">
+        <div class="auth-tab active" data-tab="login">Sign In</div>
+        <div class="auth-tab" data-tab="signup">Sign Up</div>
+      </div>
+      <div id="auth-form">
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="auth-email" placeholder="you@example.com">
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="auth-password" placeholder="••••••••">
+        </div>
+        <button class="btn btn-primary btn-full" id="auth-submit">Sign In</button>
+      </div>
+      <p style="text-align:center;margin-top:16px;font-size:13px;color:var(--text2)">
+        First user to register becomes Admin
+      </p>
+    </div>
+  </div>`;
+}
+
+function bindAuth() {
+  let mode = 'login';
+  document.querySelectorAll('.auth-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      mode = tab.dataset.tab;
+      document.querySelectorAll('.auth-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === mode));
+      const form = document.getElementById('auth-form');
+      if (mode === 'signup') {
+        form.innerHTML = `
+          <div class="form-group"><label>Full Name</label><input id="auth-name" placeholder="John Doe"></div>
+          <div class="form-group"><label>Email</label><input type="email" id="auth-email" placeholder="you@example.com"></div>
+          <div class="form-group"><label>Password</label><input type="password" id="auth-password" placeholder="Min 6 characters"></div>
+          <button class="btn btn-primary btn-full" id="auth-submit">Create Account</button>`;
+      } else {
+        form.innerHTML = `
+          <div class="form-group"><label>Email</label><input type="email" id="auth-email" placeholder="you@example.com"></div>
+          <div class="form-group"><label>Password</label><input type="password" id="auth-password" placeholder="••••••••"></div>
+          <button class="btn btn-primary btn-full" id="auth-submit">Sign In</button>`;
+      }
+      bindAuthSubmit();
+    });
+  });
+  bindAuthSubmit();
+
+  function bindAuthSubmit() {
+    document.getElementById('auth-submit').addEventListener('click', async () => {
+      const email = document.getElementById('auth-email').value.trim();
+      const password = document.getElementById('auth-password').value;
+      const btn = document.getElementById('auth-submit');
+      btn.disabled = true; btn.textContent = 'Please wait...';
+      try {
+        let data;
+        if (mode === 'signup') {
+          const name = document.getElementById('auth-name').value.trim();
+          data = await api('POST', '/auth/signup', { name, email, password });
+        } else {
+          data = await api('POST', '/auth/login', { email, password });
+        }
+        token = data.token;
+        currentUser = data.user;
+        localStorage.setItem('tf_token', token);
+        localStorage.setItem('tf_user', JSON.stringify(currentUser));
+        showToast('Welcome back, ' + currentUser.name + '!');
+        render();
+      } catch (err) {
+        showToast(err.message, 'error');
+        btn.disabled = false; btn.textContent = mode === 'signup' ? 'Create Account' : 'Sign In';
+      }
+    });
+  }
+}
+
+function renderSidebar() {
+  const navItems = [
+    { id: 'dashboard', icon: iconDash, label: 'Dashboard' },
+    { id: 'projects', icon: iconProj, label: 'Projects' },
+    { id: 'tasks', icon: iconTask, label: 'All Tasks' },
+    { id: 'my-tasks', icon: iconMe, label: 'My Tasks' },
+    ...(currentUser.role === 'admin' ? [{ id: 'team', icon: iconTeam, label: 'Team' }] : []),
+  ];
+
+  return `
+  <div class="sidebar">
+    <div class="sidebar-logo">Task<span>Flow</span></div>
+    <div class="sidebar-user">
+      <div class="sidebar-user-name">${esc(currentUser.name)}</div>
+      <div class="sidebar-user-role">${currentUser.email}</div>
+      <span class="role-badge role-${currentUser.role}">${currentUser.role === 'admin' ? '⚡ Admin' : '👤 Member'}</span>
+    </div>
+    <nav class="sidebar-nav">
+      ${navItems.map(n => `
+        <div class="nav-item${currentView === n.id ? ' active' : ''}" data-view="${n.id}">
+          ${n.icon()} <span>${n.label}</span>
+        </div>`).join('')}
+    </nav>
+    <div class="sidebar-footer">
+      <div class="nav-item" id="logout-btn">${iconLogout()} <span>Sign Out</span></div>
+    </div>
+  </div>`;
+}
+
+function bindSidebar() {
+  document.querySelectorAll('.nav-item[data-view]').forEach(el => {
+    el.addEventListener('click', () => {
+      currentView = el.dataset.view;
+      currentProjectId = null;
+      render();
+    });
+  });
+  document.getElementById('logout-btn')?.addEventListener('click', () => {
+    token = null; currentUser = null;
+    localStorage.removeItem('tf_token'); localStorage.removeItem('tf_user');
+    render();
+  });
+}
+
+async function renderView() {
+  const main = document.getElementById('main-content');
+  if (!main) return;
+
+  try {
+    if (currentView === 'dashboard') await renderDashboard(main);
+    else if (currentView === 'projects') await renderProjects(main);
+    else if (currentView === 'project-detail') await renderProjectDetail(main);
+    else if (currentView === 'tasks') await renderTasks(main);
+    else if (currentView === 'my-tasks') await renderMyTasks(main);
+    else if (currentView === 'team') await renderTeam(main);
+  } catch (err) {
+    main.innerHTML = `<div class="content"><div class="empty"><div class="empty-icon">⚠️</div><h3>Error</h3><p>${err.message}</p></div></div>`;
+  }
+}
+
+// ──────────────────────────────── DASHBOARD ──────────────────────────────────
+async function renderDashboard(main) {
+  const { stats, projectStats, recentTasks, myTasks } = await api('GET', '/tasks/dashboard');
+  main.innerHTML = `
+    <div class="topbar">
+      <div class="topbar-title">Dashboard</div>
+      <div class="topbar-actions">
+        <button class="btn btn-primary" id="quick-task-btn">+ New Task</button>
+      </div>
+    </div>
+    <div class="content">
+      <div class="stats-grid">
+        <div class="stat-card blue"><div class="stat-label">Total Tasks</div><div class="stat-value">${stats.total_tasks||0}</div><div class="stat-icon">📋</div></div>
+        <div class="stat-card yellow"><div class="stat-label">To Do</div><div class="stat-value">${stats.todo||0}</div><div class="stat-icon">🔵</div></div>
+        <div class="stat-card purple"><div class="stat-label">In Progress</div><div class="stat-value">${stats.in_progress||0}</div><div class="stat-icon">⚡</div></div>
+        <div class="stat-card green"><div class="stat-label">Done</div><div class="stat-value">${stats.done||0}</div><div class="stat-icon">✅</div></div>
+      </div>
+      ${stats.overdue > 0 ? `
+      <div style="background:rgba(255,107,107,.1);border:1px solid rgba(255,107,107,.3);border-radius:10px;padding:12px 16px;margin-bottom:20px;display:flex;align-items:center;gap:8px;font-size:14px;color:var(--high)">
+        ⚠️ You have <strong>${stats.overdue}</strong> overdue task${stats.overdue>1?'s':''}
+      </div>` : ''}
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header"><div class="card-title">My Tasks</div></div>
+          <div class="card-body">
+            ${myTasks.length ? myTasks.map(t => `
+              <div class="task-item">
+                <div class="task-status-dot" style="background:${statusColor(t.status)}"></div>
+                <div class="task-info">
+                  <div class="task-title">${esc(t.title)}</div>
+                  <div class="task-meta">${esc(t.project_name)} ${t.due_date ? `· <span class="${isOverdue(t)?'overdue-text':''}">Due ${fmt(t.due_date)}</span>` : ''}</div>
+                </div>
+                <span class="badge badge-${t.priority}">${t.priority}</span>
+              </div>`).join('') : '<div class="empty" style="padding:20px"><p>No tasks assigned to you</p></div>'}
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Project Progress</div></div>
+          <div class="card-body">
+            ${projectStats.length ? projectStats.map(p => {
+              const pct = p.task_count ? Math.round(p.done_count/p.task_count*100) : 0;
+              return `
+              <div style="margin-bottom:14px">
+                <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
+                  <span style="font-weight:500">${esc(p.name)}</span>
+                  <span style="color:var(--text2)">${pct}%</span>
+                </div>
+                <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+                <div style="font-size:11px;color:var(--text2)">${p.done_count||0}/${p.task_count||0} tasks done</div>
+              </div>`;
+            }).join('') : '<div class="empty" style="padding:20px"><p>No projects yet</p></div>'}
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+  document.getElementById('quick-task-btn')?.addEventListener('click', () => showTaskModal());
+}
+
+// ──────────────────────────────── PROJECTS ───────────────────────────────────
+async function renderProjects(main) {
+  const { projects } = await api('GET', '/projects');
+  main.innerHTML = `
+    <div class="topbar">
+      <div class="topbar-title">Projects</div>
+      <div class="topbar-actions">
+        <button class="btn btn-primary" id="new-project-btn">+ New Project</button>
+      </div>
+    </div>
+    <div class="content">
+      ${projects.length ? `
+      <div class="grid-3">
+        ${projects.map(p => {
+          const pct = p.task_count ? Math.round(p.done_count/p.task_count*100) : 0;
+          return `
+          <div class="project-card" data-pid="${p.id}">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <div class="project-name">${esc(p.name)}</div>
+              <span class="badge badge-${p.status}">${p.status}</span>
+            </div>
+            <div class="project-desc">${esc(p.description || 'No description')}</div>
+            <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+            <div class="project-footer">
+              <span>${p.member_count||0} members</span>
+              <span>${p.done_count||0}/${p.task_count||0} tasks</span>
+              <span style="color:var(--accent)">${pct}%</span>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>` : `
+      <div class="empty">
+        <div class="empty-icon">📁</div>
+        <h3>No projects yet</h3>
+        <p>Create your first project to get started</p>
+        <button class="btn btn-primary" style="margin-top:16px" id="empty-proj-btn">+ Create Project</button>
+      </div>`}
+    </div>`;
+
+  document.getElementById('new-project-btn')?.addEventListener('click', () => showProjectModal());
+  document.getElementById('empty-proj-btn')?.addEventListener('click', () => showProjectModal());
+  document.querySelectorAll('.project-card').forEach(el => {
+    el.addEventListener('click', () => {
+      currentProjectId = el.dataset.pid;
+      currentView = 'project-detail';
+      renderView();
+    });
+  });
+}
+
+async function renderProjectDetail(main) {
+  const [{ project, members }, { tasks }] = await Promise.all([
+    api('GET', `/projects/${currentProjectId}`),
+    api('GET', `/tasks?project_id=${currentProjectId}`)
+  ]);
+
+  const todoTasks = tasks.filter(t => t.status === 'todo');
+  const inProgressTasks = tasks.filter(t => t.status === 'in_progress');
+  const doneTasks = tasks.filter(t => t.status === 'done');
+  const isOwner = project.owner_id === currentUser.id || currentUser.role === 'admin';
+
+  main.innerHTML = `
+    <div class="topbar">
+      <div class="topbar-title">${esc(project.name)}</div>
+      <div class="topbar-actions">
+        ${isOwner ? `<button class="btn btn-secondary" id="add-member-btn">+ Add Member</button>` : ''}
+        <button class="btn btn-primary" id="new-task-btn">+ New Task</button>
+        ${isOwner ? `<button class="btn btn-danger" id="del-proj-btn">Delete</button>` : ''}
+      </div>
+    </div>
+    <div class="content">
+      <div class="breadcrumb" id="back-btn">← Back to Projects</div>
+      <div style="margin-bottom:20px">
+        <p style="color:var(--text2);font-size:14px">${esc(project.description || '')}</p>
+        <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap">
+          <span class="chip">👤 Owner: ${esc(project.owner_name)}</span>
+          <span class="chip">${members.length} members</span>
+          <span class="chip badge-${project.status}">${project.status}</span>
+        </div>
+      </div>
+
+      <div style="margin-bottom:20px">
+        <div class="card-title" style="margin-bottom:10px">Team Members</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          ${members.map(m => `
+            <div style="display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 12px">
+              <div class="avatar">${m.name[0].toUpperCase()}</div>
+              <div>
+                <div style="font-size:13px;font-weight:500">${esc(m.name)}</div>
+                <div style="font-size:11px;color:var(--text2)">${m.role}</div>
+              </div>
+              ${isOwner && m.id !== currentUser.id ? `<button class="btn btn-danger" style="padding:4px 8px;font-size:11px" data-uid="${m.id}" data-remove-member>×</button>` : ''}
+            </div>`).join('')}
+        </div>
+      </div>
+
+      <div class="kanban">
+        ${renderKanbanCol('Todo', 'todo', todoTasks)}
+        ${renderKanbanCol('In Progress', 'in_progress', inProgressTasks)}
+        ${renderKanbanCol('Done', 'done', doneTasks)}
+      </div>
+    </div>`;
+
+  document.getElementById('back-btn').addEventListener('click', () => {
+    currentView = 'projects'; currentProjectId = null; renderView();
+  });
+  document.getElementById('new-task-btn').addEventListener('click', () => showTaskModal(currentProjectId));
+  document.getElementById('add-member-btn')?.addEventListener('click', () => showAddMemberModal(currentProjectId));
+  document.getElementById('del-proj-btn')?.addEventListener('click', async () => {
+    if (!confirm(`Delete project "${project.name}"? This will delete all tasks.`)) return;
+    await api('DELETE', `/projects/${currentProjectId}`);
+    showToast('Project deleted');
+    currentView = 'projects'; currentProjectId = null; renderView();
+  });
+  document.querySelectorAll('[data-remove-member]').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      await api('DELETE', `/projects/${currentProjectId}/members/${btn.dataset.uid}`);
+      showToast('Member removed');
+      renderView();
+    });
+  });
+  document.querySelectorAll('.kanban-task').forEach(el => {
+    el.addEventListener('click', () => showTaskDetail(el.dataset.tid));
+  });
+}
+
+function renderKanbanCol(title, status, tasks) {
+  const colors = { todo: 'var(--todo)', in_progress: 'var(--accent)', done: 'var(--done)' };
+  return `
+    <div class="kanban-col">
+      <div class="kanban-header">
+        <div class="kanban-title">
+          <span style="width:8px;height:8px;border-radius:50%;background:${colors[status]};display:inline-block"></span>
+          ${title}
+        </div>
+        <span class="kanban-count">${tasks.length}</span>
+      </div>
+      ${tasks.map(t => `
+        <div class="kanban-task" data-tid="${t.id}">
+          <div class="kanban-task-title">${esc(t.title)}</div>
+          <div class="kanban-task-meta">
+            <span class="badge badge-${t.priority}">${t.priority}</span>
+            ${t.assignee_name ? `<div class="avatar" title="${esc(t.assignee_name)}" style="width:22px;height:22px;font-size:10px">${t.assignee_name[0].toUpperCase()}</div>` : ''}
+          </div>
+          ${t.due_date ? `<div style="font-size:11px;margin-top:6px;color:${isOverdue(t)?'var(--high)':'var(--text2)'}">${isOverdue(t)?'⚠ Overdue: ':''} ${fmt(t.due_date)}</div>` : ''}
+        </div>`).join('')}
+    </div>`;
+}
+
+// ──────────────────────────────── ALL TASKS ──────────────────────────────────
+async function renderTasks(main) {
+  const [{ tasks }, { projects }] = await Promise.all([
+    api('GET', '/tasks'),
+    api('GET', '/projects')
+  ]);
+  main.innerHTML = `
+    <div class="topbar">
+      <div class="topbar-title">All Tasks</div>
+      <div class="topbar-actions">
+        <button class="btn btn-primary" id="new-task-btn2">+ New Task</button>
+      </div>
+    </div>
+    <div class="content">
+      <div class="filters">
+        <select class="filter-select" id="f-proj">
+          <option value="">All Projects</option>
+          ${projects.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('')}
+        </select>
+        <select class="filter-select" id="f-status">
+          <option value="">All Status</option>
+          <option value="todo">Todo</option>
+          <option value="in_progress">In Progress</option>
+          <option value="done">Done</option>
+        </select>
+        <select class="filter-select" id="f-priority">
+          <option value="">All Priority</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+        <select class="filter-select" id="f-overdue">
+          <option value="">All</option>
+          <option value="true">Overdue</option>
+        </select>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table id="tasks-table">
+            <thead><tr>
+              <th>Task</th><th>Project</th><th>Status</th><th>Priority</th><th>Assignee</th><th>Due Date</th><th>Actions</th>
+            </tr></thead>
+            <tbody>${renderTaskRows(tasks)}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>`;
+
+  document.getElementById('new-task-btn2').addEventListener('click', () => showTaskModal());
+
+  async function applyFilters() {
+    const proj = document.getElementById('f-proj').value;
+    const status = document.getElementById('f-status').value;
+    const priority = document.getElementById('f-priority').value;
+    const overdue = document.getElementById('f-overdue').value;
+    let url = '/tasks?';
+    if (proj) url += `project_id=${proj}&`;
+    if (status) url += `status=${status}&`;
+    if (priority) url += `priority=${priority}&`;
+    if (overdue) url += `overdue=${overdue}&`;
+    const { tasks: filtered } = await api('GET', url);
+    document.querySelector('#tasks-table tbody').innerHTML = renderTaskRows(filtered);
+    bindTaskActions();
+  }
+
+  ['f-proj','f-status','f-priority','f-overdue'].forEach(id => {
+    document.getElementById(id).addEventListener('change', applyFilters);
+  });
+  bindTaskActions();
+}
+
+function renderTaskRows(tasks) {
+  if (!tasks.length) return `<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text2)">No tasks found</td></tr>`;
+  return tasks.map(t => `
+    <tr>
+      <td><div style="font-weight:500;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.title)}</div></td>
+      <td style="color:var(--text2);font-size:13px">${esc(t.project_name||'')}</td>
+      <td><span class="badge badge-${t.status}">${t.status.replace('_',' ')}</span></td>
+      <td><span class="badge badge-${t.priority}">${t.priority}</span></td>
+      <td style="font-size:13px">${t.assignee_name ? `<div style="display:flex;align-items:center;gap:6px"><div class="avatar" style="width:22px;height:22px;font-size:10px">${t.assignee_name[0].toUpperCase()}</div>${esc(t.assignee_name)}</div>` : '<span style="color:var(--text2)">—</span>'}</td>
+      <td style="font-size:13px;${isOverdue(t)?'color:var(--high)':''}">${t.due_date ? fmt(t.due_date) : '—'}</td>
+      <td>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-secondary" style="padding:5px 10px;font-size:12px" data-edit="${t.id}">Edit</button>
+          <button class="btn btn-danger" style="padding:5px 10px;font-size:12px" data-del="${t.id}">Del</button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+function bindTaskActions() {
+  document.querySelectorAll('[data-edit]').forEach(btn => {
+    btn.addEventListener('click', () => showTaskDetail(btn.dataset.edit));
+  });
+  document.querySelectorAll('[data-del]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Delete this task?')) return;
+      await api('DELETE', `/tasks/${btn.dataset.del}`);
+      showToast('Task deleted');
+      renderView();
+    });
+  });
+}
+
+// ──────────────────────────────── MY TASKS ───────────────────────────────────
+async function renderMyTasks(main) {
+  const { tasks } = await api('GET', '/users/me/tasks');
+  main.innerHTML = `
+    <div class="topbar"><div class="topbar-title">My Tasks</div></div>
+    <div class="content">
+      <div class="tabs">
+        <div class="tab active" data-filter="all">All (${tasks.length})</div>
+        <div class="tab" data-filter="todo">Todo (${tasks.filter(t=>t.status==='todo').length})</div>
+        <div class="tab" data-filter="in_progress">In Progress (${tasks.filter(t=>t.status==='in_progress').length})</div>
+        <div class="tab" data-filter="done">Done (${tasks.filter(t=>t.status==='done').length})</div>
+      </div>
+      <div id="my-tasks-list">
+        ${renderMyTasksList(tasks)}
+      </div>
+    </div>`;
+
+  document.querySelectorAll('.tab[data-filter]').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab[data-filter]').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      const f = tab.dataset.filter;
+      const filtered = f === 'all' ? tasks : tasks.filter(t => t.status === f);
+      document.getElementById('my-tasks-list').innerHTML = renderMyTasksList(filtered);
+      bindMyTaskActions(tasks);
+    });
+  });
+  bindMyTaskActions(tasks);
+}
+
+function renderMyTasksList(tasks) {
+  if (!tasks.length) return `<div class="empty"><div class="empty-icon">✅</div><h3>All clear!</h3><p>No tasks here</p></div>`;
+  return `<div style="display:flex;flex-direction:column;gap:10px">` + tasks.map(t => `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;display:flex;align-items:center;gap:14px">
+      <div class="task-status-dot" style="background:${statusColor(t.status)};width:12px;height:12px;border-radius:50%;flex-shrink:0"></div>
+      <div style="flex:1">
+        <div style="font-weight:500;margin-bottom:4px">${esc(t.title)}</div>
+        <div style="font-size:12px;color:var(--text2)">${esc(t.project_name)} ${t.due_date?`· <span class="${isOverdue(t)?'overdue-text':''}">Due ${fmt(t.due_date)}</span>`:''}</div>
+      </div>
+      <span class="badge badge-${t.status}">${t.status.replace('_',' ')}</span>
+      <span class="badge badge-${t.priority}">${t.priority}</span>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-secondary" style="padding:5px 10px;font-size:12px" data-edit="${t.id}">Edit</button>
+        ${t.status !== 'done' ? `<button class="btn btn-success" style="padding:5px 10px;font-size:12px" data-done="${t.id}">Done ✓</button>` : ''}
+      </div>
+    </div>`).join('') + '</div>';
+}
+
+function bindMyTaskActions(allTasks) {
+  document.querySelectorAll('[data-edit]').forEach(btn => {
+    btn.addEventListener('click', () => showTaskDetail(btn.dataset.edit));
+  });
+  document.querySelectorAll('[data-done]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      await api('PUT', `/tasks/${btn.dataset.done}`, { status: 'done' });
+      showToast('Task marked as done!');
+      renderView();
+    });
+  });
+}
+
+// ──────────────────────────────── TEAM ───────────────────────────────────────
+async function renderTeam(main) {
+  const { users } = await api('GET', '/users');
+  main.innerHTML = `
+    <div class="topbar"><div class="topbar-title">Team Management</div></div>
+    <div class="content">
+      <div class="card">
+        <div class="card-header"><div class="card-title">All Users (${users.length})</div></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th><th>Actions</th></tr></thead>
+            <tbody>
+              ${users.map(u => `
+                <tr>
+                  <td><div style="display:flex;align-items:center;gap:8px"><div class="avatar">${u.name[0].toUpperCase()}</div>${esc(u.name)}</div></td>
+                  <td style="color:var(--text2);font-size:13px">${esc(u.email)}</td>
+                  <td><span class="badge role-${u.role}">${u.role}</span></td>
+                  <td style="font-size:13px;color:var(--text2)">${new Date(u.created_at).toLocaleDateString()}</td>
+                  <td>
+                    ${u.id !== currentUser.id ? `
+                    <button class="btn btn-secondary" style="padding:5px 10px;font-size:12px" data-toggle-role="${u.id}" data-current-role="${u.role}">
+                      Make ${u.role === 'admin' ? 'Member' : 'Admin'}
+                    </button>` : '<span style="color:var(--text2);font-size:12px">You</span>'}
+                  </td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>`;
+
+  document.querySelectorAll('[data-toggle-role]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const newRole = btn.dataset.currentRole === 'admin' ? 'member' : 'admin';
+      await api('PUT', `/users/${btn.dataset.toggleRole}/role`, { role: newRole });
+      showToast('Role updated');
+      renderView();
+    });
+  });
+}
+
+// ──────────────────────────────── MODALS ─────────────────────────────────────
+async function showProjectModal(projectData) {
+  const modal = createModal(projectData ? 'Edit Project' : 'New Project', `
+    <div class="form-group"><label>Project Name *</label><input id="m-pname" value="${projectData ? esc(projectData.name) : ''}"></div>
+    <div class="form-group"><label>Description</label><textarea id="m-pdesc" rows="3">${projectData ? esc(projectData.description) : ''}</textarea></div>
+    ${projectData ? `<div class="form-group"><label>Status</label><select id="m-pstatus"><option value="active" ${projectData.status==='active'?'selected':''}>Active</option><option value="archived" ${projectData.status==='archived'?'selected':''}>Archived</option></select></div>` : ''}
+  `, async () => {
+    const name = document.getElementById('m-pname').value.trim();
+    if (!name) { showToast('Project name required', 'error'); return false; }
+    const body = { name, description: document.getElementById('m-pdesc').value };
+    if (projectData) body.status = document.getElementById('m-pstatus').value;
+    await api(projectData ? 'PUT' : 'POST', projectData ? `/projects/${projectData.id}` : '/projects', body);
+    showToast(projectData ? 'Project updated!' : 'Project created!');
+    renderView();
+  });
+}
+
+async function showTaskModal(projectId) {
+  const { projects } = await api('GET', '/projects');
+  if (!projects.length) { showToast('Create a project first!', 'error'); return; }
+
+  const defaultProj = projectId || projects[0].id;
+  // Load ALL users so admin can assign tasks to any team member
+  let allUsers = [];
+  try {
+    const r = await api('GET', '/users/search');
+    allUsers = r.users || [];
+  } catch(e) {}
+  // Fallback: if search returns empty (no @ in names), get project members + current user
+  if (!allUsers.length) {
+    try { const r = await api('GET', `/projects/${defaultProj}`); allUsers = r.members || []; } catch(e) {}
+  }
+
+  createModal('New Task', `
+    <div class="form-group"><label>Task Title *</label><input id="m-ttitle" placeholder="Enter task title..."></div>
+    <div class="form-group"><label>Description</label><textarea id="m-tdesc" rows="2" placeholder="Optional description..."></textarea></div>
+    <div class="form-group"><label>Project *</label>
+      <select id="m-tproject">
+        ${projects.map(p => `<option value="${p.id}" ${p.id == defaultProj ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group"><label>Assignee</label>
+      <select id="m-tassignee">
+        <option value="">Unassigned</option>
+        ${allUsers.map(m => `<option value="${m.id}">${esc(m.name)} (${esc(m.email)})</option>`).join('')}
+      </select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group"><label>Priority</label>
+        <select id="m-tpriority"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option></select>
+      </div>
+      <div class="form-group"><label>Due Date</label><input type="date" id="m-tdue"></div>
+    </div>
+  `, async () => {
+    const title = document.getElementById('m-ttitle').value.trim();
+    const project_id = document.getElementById('m-tproject').value;
+    if (!title) { showToast('Task title required', 'error'); return false; }
+    const assignee_id = document.getElementById('m-tassignee').value || null;
+    await api('POST', '/tasks', {
+      title,
+      description: document.getElementById('m-tdesc').value,
+      project_id,
+      assignee_id: assignee_id ? parseInt(assignee_id) : null,
+      priority: document.getElementById('m-tpriority').value,
+      due_date: document.getElementById('m-tdue').value || null
+    });
+    showToast('Task created!');
+    renderView();
+  });
+
+  // When project changes, still show all users (admin assigns to anyone)
+  document.getElementById('m-tproject').addEventListener('change', async (e) => {
+    try {
+      const r = await api('GET', '/users/search');
+      let users = r.users || [];
+      if (!users.length) { const r2 = await api('GET', `/projects/${e.target.value}`); users = r2.members || []; }
+      const sel = document.getElementById('m-tassignee');
+      sel.innerHTML = '<option value="">Unassigned</option>' +
+        users.map(m => `<option value="${m.id}">${esc(m.name)} (${esc(m.email)})</option>`).join('');
+    } catch(err) {}
+  });
+}
+
+async function showTaskDetail(taskId) {
+  const { task } = await api('GET', `/tasks/${taskId}`);
+  const { projects } = await api('GET', '/projects');
+  // Load all users for assignee dropdown
+  let allEditUsers = [];
+  try {
+    const r = await api('GET', '/users/search');
+    allEditUsers = r.users || [];
+  } catch(e) {}
+  if (!allEditUsers.length) {
+    try { const r = await api('GET', `/projects/${task.project_id}`); allEditUsers = r.members || []; } catch(e) {}
+  }
+
+  createModal('Edit Task', `
+    <div class="form-group"><label>Title</label><input id="m-et" value="${esc(task.title)}"></div>
+    <div class="form-group"><label>Description</label><textarea id="m-ed" rows="2">${esc(task.description||'')}</textarea></div>
+    <div class="form-group"><label>Status</label>
+      <select id="m-es">
+        <option value="todo" ${task.status==='todo'?'selected':''}>Todo</option>
+        <option value="in_progress" ${task.status==='in_progress'?'selected':''}>In Progress</option>
+        <option value="done" ${task.status==='done'?'selected':''}>Done</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Assignee</label>
+      <select id="m-ea">
+        <option value="">Unassigned</option>
+        ${allEditUsers.map(m => `<option value="${m.id}" ${task.assignee_id==m.id?'selected':''}>${esc(m.name)} (${esc(m.email)})</option>`).join('')}
+      </select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group"><label>Priority</label>
+        <select id="m-ep">
+          <option value="low" ${task.priority==='low'?'selected':''}>Low</option>
+          <option value="medium" ${task.priority==='medium'?'selected':''}>Medium</option>
+          <option value="high" ${task.priority==='high'?'selected':''}>High</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Due Date</label><input type="date" id="m-edu" value="${task.due_date||''}"></div>
+    </div>
+    <div style="padding-top:8px;border-top:1px solid var(--border);font-size:12px;color:var(--text2)">
+      Created by ${esc(task.creator_name||'')} · Project: ${esc(task.project_name||'')}
+    </div>
+  `, async () => {
+    await api('PUT', `/tasks/${taskId}`, {
+      title: document.getElementById('m-et').value.trim(),
+      description: document.getElementById('m-ed').value,
+      status: document.getElementById('m-es').value,
+      assignee_id: document.getElementById('m-ea').value ? parseInt(document.getElementById('m-ea').value) : null,
+      priority: document.getElementById('m-ep').value,
+      due_date: document.getElementById('m-edu').value || null
+    });
+    showToast('Task updated!');
+    renderView();
+  }, 'Save Changes');
+}
+
+async function showAddMemberModal(projectId) {
+  createModal('Add Member', `
+    <div class="form-group">
+      <label>Search by email or name</label>
+      <input id="m-msearch" placeholder="Enter email...">
+    </div>
+    <div id="m-mresults" style="margin-top:8px"></div>
+  `, null, null);
+
+  document.getElementById('m-msearch').addEventListener('input', async (e) => {
+    if (e.target.value.length < 2) return;
+    const { users } = await api('GET', `/users/search?q=${encodeURIComponent(e.target.value)}`);
+    const el = document.getElementById('m-mresults');
+    el.innerHTML = users.map(u => `
+      <div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--surface2);border-radius:8px;margin-bottom:6px">
+        <div class="avatar">${u.name[0].toUpperCase()}</div>
+        <div style="flex:1"><div style="font-size:14px">${esc(u.name)}</div><div style="font-size:12px;color:var(--text2)">${esc(u.email)}</div></div>
+        <button class="btn btn-primary" style="padding:6px 12px;font-size:12px" data-add-uid="${u.id}" data-add-email="${esc(u.email)}">Add</button>
+      </div>`).join('') || '<p style="color:var(--text2);font-size:13px">No users found</p>';
+
+    document.querySelectorAll('[data-add-uid]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        await api('POST', `/projects/${projectId}/members`, { email: btn.dataset.addEmail });
+        showToast('Member added!');
+        document.querySelector('.modal-overlay').remove();
+        renderView();
+      });
+    });
+  });
+}
+
+function createModal(title, body, onSave, saveLabel = 'Save') {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">${title}</div>
+        <button class="close-btn" id="modal-close">${iconX()}</button>
+      </div>
+      <div class="modal-body">${body}</div>
+      ${onSave !== null ? `
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="modal-cancel">Cancel</button>
+        <button class="btn btn-primary" id="modal-save">${saveLabel || 'Save'}</button>
+      </div>` : ''}
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.querySelector('#modal-close').addEventListener('click', () => overlay.remove());
+  overlay.querySelector('#modal-cancel')?.addEventListener('click', () => overlay.remove());
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+
+  if (onSave) {
+    overlay.querySelector('#modal-save').addEventListener('click', async () => {
+      const btn = overlay.querySelector('#modal-save');
+      btn.disabled = true; btn.textContent = 'Saving...';
+      try {
+        const result = await onSave();
+        if (result !== false) overlay.remove();
+        else { btn.disabled = false; btn.textContent = saveLabel || 'Save'; }
+      } catch (err) {
+        showToast(err.message, 'error');
+        btn.disabled = false; btn.textContent = saveLabel || 'Save';
+      }
+    });
+  }
+  return overlay;
+}
+
+// ──────────────────────────────── HELPERS ────────────────────────────────────
+function esc(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function statusColor(s) {
+  return { todo: 'var(--todo)', in_progress: 'var(--accent)', done: 'var(--done)' }[s] || '#888';
+}
+function fmt(d) {
+  if (!d) return '';
+  const date = new Date(d + 'T00:00:00');
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+function isOverdue(t) {
+  if (!t.due_date || t.status === 'done') return false;
+  return new Date(t.due_date) < new Date(new Date().toISOString().split('T')[0]);
+}
+
+// ──────────────────────────────── ICONS ──────────────────────────────────────
+function iconDash() { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>`; }
+function iconProj() { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>`; }
+function iconTask() { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>`; }
+function iconMe() { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>`; }
+function iconTeam() { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>`; }
+function iconLogout() { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>`; }
+function iconX() { return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>`; }
+
+// ──────────────────────────────── INIT ───────────────────────────────────────
+render();
+</script>
+</body>
+</html>
